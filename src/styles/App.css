@@ -1,0 +1,29 @@
+.piece{
+  cursor:pointer;
+  position:absolute;
+
+  width: 100%;
+  /* cursor: grab; */
+  z-index:100;
+  user-select:none;
+}
+
+.piece.active{
+  /* background:gray; */
+  z-index:201;
+}
+
+
+.dragover{
+  border: 3px solid rgba(172, 219, 232, 0.589) !important;
+}
+
+
+.image{
+  width:100px;
+  height:100px;
+}
+
+.legal{
+  background: #14115880 !important;
+}
