@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useSelector } from "react-redux";
 
 import decodeFEN from "./FENtoBoard";
-import { checkGameOver, evaluatePosition   } from "./utils";
+import { checkGameOver } from "./utils";
 
 import useAction, { setBoardAction, setMoveNumberAction } from "./actions";
 import {
@@ -43,7 +43,6 @@ const ChessBoard = () => {
       console.log("GAME OVER");
       return;
     }
-    console.log(evaluatePosition(fen));
   }, [fen])
 
   useEffect(()=>{
@@ -60,10 +59,10 @@ const ChessBoard = () => {
     >
       {Array.from(new Array(8)).map((_, rank) => (
         <Grid key={`${rank}`} container item xs={12} spacing={0}>
-          {rank + 1}
+          {8-rank}
           {Array.from(new Array(8)).map((_, file) => (
             <Grid key={`${file}`} item xs={1}>
-              <Square index={rank * 8 + file} />
+              <Square index={(8-rank)*8 - (8-file)} />
               {rank === 7 ? file + 1 : ""}
             </Grid>
           ))}

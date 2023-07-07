@@ -1,11 +1,13 @@
 import { createSlice, current } from "@reduxjs/toolkit";
 
 import {
+  algebraicChessNotationToMove,
   fenToString,
-  getColor,
-  getType,
+  getPieceColor,
+  getPieceType,
   movePiece,
   moveToAlgebraicChessNotation,
+  printBoard,
 } from "../utils";
 import { pieceTypes } from "../pieces";
 
@@ -54,7 +56,6 @@ const gameReducer = createSlice({
     },
 
     recordMove: (state, action) => {
-      // console.log(capturedPiece);
       state.moveNumber = state.history.length + 1;
       state.history.push(action.payload);
     },
@@ -87,13 +88,12 @@ const gameReducer = createSlice({
     },
 
     handleMove: (state, action) => {
-      console.log(fenToString(state.FEN));
       const { from, to } = action.payload;
       let { board, enPassant, turn, castling, halfMoveClock, fullMoveNumber } =
         state.FEN;
 
-      const type = getType(board, from);
-      const color = getColor(board, from);
+      const type = getPieceType(board[from]);
+      const color = getPieceColor(board[from]);
       const capturedPiece = board[to];
 
       halfMoveClock += 1;
@@ -106,10 +106,6 @@ const gameReducer = createSlice({
       if (type === pieceTypes.King) {
         if (color === pieceTypes.White) toRemove += "KQ";
         else toRemove += "kq";
-        if (to === from + 2)
-          board = movePiece(board, { from: from + 3, to: from + 1 });
-        else if (to === from - 2)
-          board = movePiece(board, { from: from - 4, to: from - 1 });
       } else if (type === pieceTypes.Rook) {
         if (color === pieceTypes.White) {
           if (from === 7) toRemove += "K";
@@ -146,6 +142,24 @@ const gameReducer = createSlice({
         fullMoveNumber,
       };
     },
+    loadGame: (state, action) => {
+      const moves = action.payload;
+      let fen = state.FEN;
+      let board = fen.board;
+      for(let index = 0; index < moves.length; index++){
+        const notation = moves[index];
+        fen.turn = fen.turn === "w" ? "b" : "w";
+        const move = algebraicChessNotationToMove({...fen, board}, notation)
+        if(!move|| move.from === -1)  break;
+
+        const capturedPiece = board[move.to]
+
+        board = movePiece(board, move)
+        
+        state.history.push({ move, notation, capturedPiece })
+
+      }
+    },
   },
 });
 
@@ -168,6 +182,7 @@ export const {
   rotateTurn,
   setMoveNumber,
   handleMove,
+  loadGame
 } = gameReducer.actions;
 
 export default gameReducer.reducer;

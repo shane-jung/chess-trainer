@@ -1,6 +1,6 @@
 import pieces, { pieceTypes, pieceValues} from "./pieces";
 
-import { isOccupied, getColor, isSameColor, movePiece } from "./utils";
+import { isOccupied, getPieceColor, isSameColor, movePiece } from "./utils";
 
 const calculateLegalMovesForPiece = (FEN, index, depth) => {
   let legalMoves;
@@ -32,7 +32,7 @@ const calculateLegalMovesForPiece = (FEN, index, depth) => {
   if (depth) return legalMoves;
 
   const { board } = FEN;
-  const color = getColor(board, index);
+  const color = getPieceColor(board[index]);
   return legalMoves.filter((move) => {
     return !isKingAttacked(
       { ...FEN, board: movePiece(FEN.board, {from:index, to:move}) },
@@ -72,9 +72,8 @@ function calculatePawnMoves({ board, enPassant }, index) {
   }
 
   const legalMoves = candidateMoves.filter(
-    (move) => !isSameColor(board, index, move)
+    (to) => !isSameColor(board[index], board[to])
   );
-
   return legalMoves;
 }
 
@@ -111,39 +110,37 @@ function calculateRookMoves({ board }, index) {
     candidateMoves.push(index + 8 * i);
   }
   const legalMoves = candidateMoves.filter(
-    (move) => !isSameColor(board, index, move)
+    (move) => !isSameColor(board[index], board[move])
   );
   return legalMoves;
 }
 
 function calculateBishopMoves({ board }, index) {
-  //  console.log(board);
   const candidateMoves = [];
   const rank = Math.floor(index / 8);
   const file = index % 8;
-  // console.log(rank, file);
   for (let i = -1; i >= -Math.min(file, rank); i--) {
-    //up and left
+    //down and left
     candidateMoves.push(index + i + i * 8);
     if (isOccupied(board, index + i + i * 8)) break;
   }
   for (let i = 1; i < Math.min(8 - rank, 8 - file); i++) {
-    //down and right
+    //up and right
     candidateMoves.push(index + i + i * 8);
     if (isOccupied(board, index + i + i * 8)) break;
   }
   for (let i = -1; i >= 1 - Math.min(8 - file, 1 + rank); i--) {
-    //up and right
+    //down and right
     candidateMoves.push(index - i + i * 8);
     if (isOccupied(board, index - i + i * 8)) break;
   }
-  for (let i = 1; i < Math.min(file, 8 - rank); i++) {
-    //down and left
+  for (let i = 1; i <= Math.min(file, 8 - rank); i++) {
+    //up and left
     candidateMoves.push(index - i + i * 8);
     if (isOccupied(board, index - i + i * 8)) break;
   }
   const legalMoves = candidateMoves.filter(
-    (move) => !isSameColor(board, index, move)
+    (move) => !isSameColor(board[index], board[move])
   );
   // console.log(legalMoves);
   return legalMoves;
@@ -170,7 +167,7 @@ function calculateKnightMoves({ board }, index) {
     if (rank < 6) candidateMoves.push(index + 17);
   }
   let legalMoves = candidateMoves.filter(
-    (move) => !isSameColor(board, index, move)
+    (move) => !isSameColor(board[index], board[move])
   );
   return legalMoves;
 }
@@ -199,13 +196,13 @@ function calculateCandidateKingMoves(FEN, index) {
   if (rank > 0) candidateMoves.push(index - 8);
   if (rank < 7) candidateMoves.push(index + 8);
 
-  return candidateMoves.filter((move) => !isSameColor(FEN.board, index, move));
+  return candidateMoves.filter((move) => !isSameColor(FEN.board[index], FEN.board[move]));
 }
 
 export function calculateKingMoves(FEN, index) {
   const { board, castling } = FEN;
   const candidateMoves = calculateCandidateKingMoves(FEN, index);
-  const color = getColor(board, index)
+  const color = getPieceColor(board[index])
   const legalMoves = candidateMoves.filter((move) => {
     return !isKingAttacked(
       { ...FEN, board: movePiece(FEN.board, {from:index, to:move}) },

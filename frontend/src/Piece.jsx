@@ -58,6 +58,7 @@ export default function Piece({ piece: initial, index }) {
     });
 
     // console.log("FEN PIECES", FEN);
+    console.log("Calculating");
     setLegalMoves(calculateLegalMovesForPiece(fen, index));
   };
 
@@ -72,8 +73,9 @@ export default function Piece({ piece: initial, index }) {
   const handleMouseUp = (event) => {
     setIsDragging(false);
     const boardRect = document.getElementById("board").getBoundingClientRect();
-    const rank = Math.floor((event.clientY - boardRect.top) / 70);
+    const rank = 7-Math.floor((event.clientY - boardRect.top) / 70);
     const file = Math.floor((event.clientX - boardRect.left) / 70);
+    // console.log(rank, file);
     const to = rank * 8 + file;
 
     if (fen.turn !== color) {

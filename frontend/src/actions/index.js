@@ -70,6 +70,13 @@ const handleMoveAction = (from, to) => {
   };
 }
 
+const loadGameAction = (moves) => {
+  return {
+    type: "game/loadGame",
+    payload: moves,
+  };
+};
+
 const useAction = (action) => {
   const dispatch = useDispatch();
   return useCallback(
@@ -91,4 +98,5 @@ export {
   recordMoveAction,
   setMoveNumberAction,
   handleMoveAction,
+  loadGameAction,
 };
