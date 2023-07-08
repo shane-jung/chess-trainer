@@ -1,4 +1,4 @@
-import pieces, { pieceTypes, pieceValues} from "./pieces";
+import pieces, { pieceTypes } from "./pieces";
 
 import { isOccupied, getPieceColor, isSameColor, movePiece } from "./utils";
 
@@ -35,7 +35,7 @@ const calculateLegalMovesForPiece = (FEN, index, depth) => {
   const color = getPieceColor(board[index]);
   return legalMoves.filter((move) => {
     return !isKingAttacked(
-      { ...FEN, board: movePiece(FEN.board, {from:index, to:move}) },
+      { ...FEN, board: movePiece(FEN.board, { from: index, to: move }) },
       color
     );
   });
@@ -196,60 +196,70 @@ function calculateCandidateKingMoves(FEN, index) {
   if (rank > 0) candidateMoves.push(index - 8);
   if (rank < 7) candidateMoves.push(index + 8);
 
-  return candidateMoves.filter((move) => !isSameColor(FEN.board[index], FEN.board[move]));
+  return candidateMoves.filter(
+    (move) => !isSameColor(FEN.board[index], FEN.board[move])
+  );
 }
 
 export function calculateKingMoves(FEN, index) {
   const { board, castling } = FEN;
   const candidateMoves = calculateCandidateKingMoves(FEN, index);
-  const color = getPieceColor(board[index])
+  const color = getPieceColor(board[index]);
   const legalMoves = candidateMoves.filter((move) => {
     return !isKingAttacked(
-      { ...FEN, board: movePiece(FEN.board, {from:index, to:move}) },
+      { ...FEN, board: movePiece(FEN.board, { from: index, to: move }) },
       color
     );
   });
   if (!isKingAttacked(FEN, color)) {
     //if king and rook haven't moved yet.
+
     if (color === pieceTypes.White) {
       if (
-        castling.includes("K") &&
         legalMoves.includes(5) &&
-        !isKingAttacked({ ...FEN, board: movePiece(FEN.board, {from:index, to:6}) }, color) &&
-        board[6] === 0
+        board[6] === 0 &&
+        castling.includes("K") &&
+        !isKingAttacked(
+          { ...FEN, board: movePiece(FEN.board, { from: index, to: 6 }) },
+          color
+        )
       ) {
         legalMoves.push(6);
       }
       if (
+        board[1] === 0 &&
+        board[2] === 0 &&
         castling.includes("Q") &&
         legalMoves.includes(3) &&
-        board[2] === 0 &&
-        !isKingAttacked({ ...FEN, board: movePiece(FEN.board, {from:index, to:2}) }, color) &&
-        board[1] === 0
+        !isKingAttacked(
+          { ...FEN, board: movePiece(FEN.board, { from: index, to: 2 }) },
+          color
+        )
       ) {
         legalMoves.push(2);
       }
     } else {
       if (
+        board[62] === 0 && 
         castling.includes("k") &&
         legalMoves.includes(61) &&
         !isKingAttacked(
-          { ...FEN, board: movePiece(FEN.board, {from:index, to:62}) },
+          { ...FEN, board: movePiece(FEN.board, { from: index, to: 62 }) },
           color
-        ) &&
-        board[62] === 0
+        ) 
       ) {
         legalMoves.push(62);
       }
       if (
+        board[57] === 0 &&
+        board[58] === 0 &&
         castling.includes("q") &&
         legalMoves.includes(59) &&
-        board[58] === 0 &&
+        
         !isKingAttacked(
-          { ...FEN, board: movePiece(FEN.board, { from:index, to:58}) },
+          { ...FEN, board: movePiece(FEN.board, { from: index, to: 58 }) },
           color
-        ) &&
-        board[57] === 0
+        ) 
       ) {
         legalMoves.push(58);
       }
@@ -273,7 +283,6 @@ export const calculateLegalMoves = (FEN, color, depth = 0) => {
   return moves;
 };
 
-
 export default calculateLegalMovesForPiece;
 
 export function isKingAttacked(FEN, color) {
@@ -284,6 +293,3 @@ export function isKingAttacked(FEN, color) {
 
   return opponentMoves.includes(index);
 }
-
-
-

@@ -2,7 +2,7 @@ import Paper from "@mui/material/Paper";
 import Piece from "./Piece";
 
 import { useSelector } from "react-redux";
-import { selectFen, selectLegalMoves } from "./slices/game";
+import { selectFen, selectLegalMoves } from "../slices/game";
 
 const Square = ({ index }) => {
   const {board} = useSelector(selectFen);

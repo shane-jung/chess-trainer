@@ -1,5 +1,7 @@
 import { useCallback } from "react";
 import { useDispatch } from "react-redux";
+import { postMoves } from "../api";
+import { moveToUCI } from "../utils";
 
 const setBoardAction = (board) => {
   return {
@@ -8,7 +10,7 @@ const setBoardAction = (board) => {
   };
 };
 
-const movePieceAction = ({from, to}) => {
+const movePieceAction = ({ from, to }) => {
   return {
     type: "game/movePiece",
     payload: { from, to },
@@ -52,23 +54,24 @@ const setFenAction = (FEN) => {
 const recordMoveAction = (move, notation, capturedPiece) => {
   return {
     type: "game/recordMove",
-    payload: {move, notation, capturedPiece},
+    payload: { move, notation, capturedPiece },
   };
 };
 
-const setMoveNumberAction = (moveNumber) => {
+const setMoveNumberAction = (oldMoveNumber, newMoveNumber, history) => {
+  const moveNumber = Math.max(0, Math.min(newMoveNumber, history.length));
   return {
     type: "game/setMoveNumber",
     payload: moveNumber,
   };
-}
+};
 
 const handleMoveAction = (from, to) => {
   return {
     type: "game/handleMove",
-    payload: {from, to},
+    payload: { from, to },
   };
-}
+};
 
 const loadGameAction = (moves) => {
   return {

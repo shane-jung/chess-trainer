@@ -4,17 +4,16 @@ import { useSelector } from "react-redux";
 import {
   selectActivePiece,
   selectLegalMoves,
-  selectTurn,
   selectFen,
-} from "./slices/game";
+} from "../slices/game";
 import useAction, {
   setActivePieceAction,
   setLegalMovesAction,
   handleMoveAction,
-} from "./actions";
+} from "../actions";
 
-import pieces from "./pieces";
-import calculateLegalMovesForPiece from "./calculateMoves";
+import pieces from "../pieces";
+import calculateLegalMovesForPiece from "../calculateMoves";
 
 export default function Piece({ piece: initial, index }) {
   // const board = useSelector(selectBoard);

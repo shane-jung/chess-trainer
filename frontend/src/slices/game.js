@@ -2,12 +2,11 @@ import { createSlice, current } from "@reduxjs/toolkit";
 
 import {
   algebraicChessNotationToMove,
-  fenToString,
   getPieceColor,
   getPieceType,
   movePiece,
   moveToAlgebraicChessNotation,
-  printBoard,
+  fenToString,
 } from "../utils";
 import { pieceTypes } from "../pieces";
 
@@ -35,9 +34,6 @@ const gameReducer = createSlice({
     setBoard: (state, action) => {
       state.FEN = action.payload;
     },
-    rotateTurn: (state, action) => {
-      state.turn = state.turn === "w" ? "b" : "w";
-    },
     setTurn: (state, action) => {
       state.turn = action.payload;
     },
@@ -61,13 +57,10 @@ const gameReducer = createSlice({
     },
 
     setMoveNumber: (state, action) => {
-      const newMoveNumber = Math.max(
-        0,
-        Math.min(action.payload + state.moveNumber, state.history.length)
-      );
+      const newMoveNumber = action.payload;
       const diff = newMoveNumber - state.moveNumber;
       for (let i = 0; i < Math.abs(diff); i += 1) {
-        const { move, notation, capturedPiece } =
+        const { move, capturedPiece } =
           state.history[state.moveNumber + (diff < 0 ? -i - 1 : i)];
         if (diff < 0) {
           state.FEN.board = movePiece(current(state.FEN.board), {
@@ -133,7 +126,7 @@ const gameReducer = createSlice({
       state.moveNumber +=1;
       state.history.push({ move: { from, to }, notation, capturedPiece });
       turn = turn === "w" ? "b" : "w";
-      state.FEN = {
+      const newFEN = {
         board,
         turn,
         castling,
@@ -141,6 +134,10 @@ const gameReducer = createSlice({
         halfMoveClock,
         fullMoveNumber,
       };
+      
+      state.FEN = newFEN
+      state.stringFEN = fenToString(newFEN);
+
     },
     loadGame: (state, action) => {
       const moves = action.payload;
@@ -179,7 +176,6 @@ export const {
   setSelected,
   setLegalMoves,
   recordMove,
-  rotateTurn,
   setMoveNumber,
   handleMove,
   loadGame

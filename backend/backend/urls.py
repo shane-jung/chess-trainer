@@ -19,10 +19,13 @@ from django.urls import path, include
 from rest_framework import routers
 from chess import views
 
+from django.views.decorators.csrf import csrf_exempt
+
 router = routers.DefaultRouter()
 router.register('games', views.GameView, 'game')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/engine/', csrf_exempt(views.EngineView.as_view())  ),
     path('api/', include(router.urls)),
 ]

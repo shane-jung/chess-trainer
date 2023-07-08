@@ -24,7 +24,7 @@ export default function decodeFEN(FEN) {
     board,
     turn: components[1],
     castling: components[2],
-    enPassant: components[3],
+    enPassant: components[3] === "-" ? -1 : Number(components[3]),
     halfMoveClock: Number(components[4]),
     fullMoveNumber: Number(components[5]),
   };
