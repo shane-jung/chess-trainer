@@ -56,7 +56,6 @@ export default function Piece({ piece: initial, index }) {
       y: event.clientY - piece.top - piece.height / 2,
     });
 
-    // console.log("FEN PIECES", FEN);
     console.log("Calculating");
     setLegalMoves(calculateLegalMovesForPiece(fen, index));
   };

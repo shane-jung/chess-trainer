@@ -30,4 +30,4 @@ class EngineView(View):
             print(stockfish.get_best_move())
         else: 
             print("Invalid FEN syntax")
-        return JsonResponse(stockfish.get_evaluation())
+        return JsonResponse({'evaluation' : stockfish.get_evaluation(), 'best_move':  stockfish.get_best_move()})

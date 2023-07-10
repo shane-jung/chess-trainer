@@ -4,71 +4,66 @@ import calculateLegalMovesForPiece, {
 } from "./calculateMoves";
 import { pieceTypes } from "./pieces";
 
-const isOccupied = (board, index) => board[index] !== 0;
+import { objToFen } from "chessboard-element";
 
-const getPieceColor = (piece) => {
-  if (piece & pieceTypes.White) return pieceTypes.White;
-  if (piece & pieceTypes.Black) return pieceTypes.Black;
-  else return 0;
+const isOccupied = (position, square) => {
+  // console.log("isOccupied: ", position, square)
+  return Object.keys(position).includes(square);
+  // position.includes((occupiedSquare) => occupiedSquare === square)
 };
 
-const isSameColor = (piece1, piece2) =>
-  !(getPieceColor(piece1) !== getPieceColor(piece2));
+const getPieceColor = (piece) => piece[0];
 
-const getPieceType = (piece) => piece & 0b111;
+const getPieceType = (piece) => piece[1];
 
-const movePiece = (board, { from, to }) => {
-  const newBoard = [...board];
-  newBoard[to] = newBoard[from];
-  newBoard[from] = 0;
+const getRank = (square) => Number(square[1]);
+const getFile = (square) => square[0];
 
-  if (getPieceType(newBoard[to]) === pieceTypes.King) {
-    if (to === from + 2) {
-      newBoard[from + 1] = newBoard[from + 3];
-      newBoard[from + 3] = 0;
-    }
-    if (to === from - 2) {
-      newBoard[from - 1] = newBoard[from - 4];
-      newBoard[from - 4] = 0;
+const isSameColor = (piece1, piece2) => {
+  if (!piece1 || !piece2) return false;
+  return !(getPieceColor(piece1) !== getPieceColor(piece2));
+};
+
+const movePiece = (position, { from, to }) => {
+  const newPosition = { ...position };
+  newPosition[to] = newPosition[from];
+  delete newPosition[from];
+
+  if (getPieceType(newPosition[to]) === "K") {
+    const rank = getRank(to);
+    const fileDifference =
+      getFile(to).charCodeAt(0) - getFile(from).charCodeAt(0);
+    if (Math.abs(fileDifference) === 2) {
+      let files = ["f", "h"];
+      if (fileDifference < 0) files = ["d", "a"];
+      const oldRookPosition = `${files[1]}${rank}`;
+      const newRookPosition = `${files[0]}${rank}`;
+      newPosition[newRookPosition] = newPosition[oldRookPosition];
+      delete newPosition[oldRookPosition];
     }
   }
-  if (getPieceType(newBoard[to]) === pieceTypes.Pawn && (to < 8 || to > 55)) {
-    newBoard[to] = pieceTypes.Queen | getPieceColor(newBoard[to]);
-  }
-  return newBoard;
+  return newPosition;
 };
 
 const moveToUCI = ({ from, to }) => {
-  console.log(from, to);
-  const squares = "abcdefgh";
-  return `${squares[from % 8]}${Math.floor(from / 8) + 1}${squares[to % 8]}${
-    Math.floor(to / 8) + 1
-  }`;
+  return `${from}${to}`;
 };
-const moveToAlgebraicChessNotation = (fen, from, to) => {
-  const board = fen.board;
-  const type = getPieceType(board[from]);
-  const color = getPieceColor(board[from]);
-  const oppositeColor =
-    color === pieceTypes.White ? pieceTypes.Black : pieceTypes.White;
-  const isCheck = isKingAttacked(
-    { ...fen, board: movePiece(fen.board, { from, to }) },
-    oppositeColor
-  );
-  const isCapture = isOccupied(board, to);
-  const squares = "abcdefgh";
-  const pieces = ["", "N", "B", "R", "Q", "K"];
 
-  return `${pieces[type - 1].toUpperCase()}${
-    isCapture && type === 1 ? squares[from % 8] : ""
-  }${isCapture ? "x" : ""}${squares[to % 8]}${Math.floor(to / 8) + 1}${
-    isCheck ? "+" : ""
-  }`;
+const moveToAlgebraicChessNotation = (
+  position,
+  from,
+  to,
+  capturedPiece,
+  inCheck
+) => {
+  const pieceType = getPieceType(position[from]);
+  const pieceChar = pieceType === "P" ? "" : pieceType;
+  const check = inCheck ? "+" : "";
+  return `${pieceChar}${capturedPiece ? "x" : ""}${to}${check}`;
 };
 
 export function parsePGN(pgn) {
   const i = pgn.lastIndexOf("]");
-  // const header = pgn.slice(0, i + 1);
   const movesString = pgn.slice(i + 1);
   const regex = /\d+\.\s|\s/g;
   const movesList = movesString.split(regex).filter((move) => move !== "");
@@ -129,64 +124,36 @@ function checkGameOver(fen) {
 }
 
 function fenToString(fen) {
-  let file = 0;
-  const pieces = ["P", "N", "B", "R", "Q", "K"];
-  const boardString = fen.board.map((_, index) => {
-    const rank = index % 8;
-    const pieceFile = Math.floor(index/8)
-    const piece = fen.board[63- (pieceFile* 8 + (7-rank))];
-    let slash = "";
-    let letter
-    if (piece !== 0) {
-      letter =
-        (file > 0 ? file.toString() : "") + pieces[getPieceType(piece) - 1];
-      if(getPieceColor(piece) === pieceTypes.Black) letter = letter.toLowerCase()
-      file = 0;
-    } else {
-      letter = "";
-      file++;
-    }
-    if ((index + 1) % 8 === 0) {
-      if (index !== 63) slash =  (file > 0 ? file.toString() : "") + "/";
-      else slash = file;
-      file = 0;
-    }
-
-    return letter + slash;
-  });
-  const enPassant = fen.enPassant === -1 ? "-" : `${"abcdefgh"[fen.enPassant%8]}${Math.floor(fen.enPassant/8)+ 1}`;
-  console.log(enPassant);
-  const castling = fen.castling === "" ? "-" : fen.castling
-  return `${boardString.join("")} ${fen.turn} ${castling} ${enPassant} ${fen.halfMoveClock} ${fen.fullMoveNumber}`;
+  const boardString = objToFen(fen.position);
+  const castling = fen.castling === "" ? "-" : fen.castling;
+  return `${boardString} ${fen.turn} ${castling} ${fen.enPassant} ${fen.halfMoveClock} ${fen.fullMoveNumber}`;
 }
 
-function printBoard(board) {
-  //convert board to 8 by 8 2d array
-  let board2d = [];
-  for (let i = 0; i < 8; i++) {
-    board2d.push(board.slice((7 - i) * 8, (7 - i) * 8 + 8));
-  }
-  const boardString = board2d.map((row) => {
-    return row.map((piece) => {
-      if (piece === 0) return "";
-      const type = getPieceType(piece);
-      const pieceString = ["♟", "♞", "♝", "♜", "♛", "♚"][type - 1];
-      return pieceString;
-    });
-  });
-  console.table(boardString);
+function newSquare(sourceFile, sourceRank, dx, dy) {
+  const destRank = sourceRank + dy;
+  const destFile = String.fromCharCode(dx + sourceFile.charCodeAt(0));
+  return `${destFile}${destRank}`;
+}
+
+function isValidSquare(square) {
+  const file = getFile(square);
+  const rank = getRank(square);
+  return file >= "a" && file <= "h" && rank >= 1 && rank <= 8;
 }
 
 export {
+  isValidSquare,
+  newSquare,
   isOccupied,
   getPieceColor,
   getPieceType,
+  getRank,
+  getFile,
   isSameColor,
   movePiece,
   moveToAlgebraicChessNotation,
   algebraicChessNotationToMove,
   checkGameOver,
   fenToString,
-  printBoard,
   moveToUCI,
 };

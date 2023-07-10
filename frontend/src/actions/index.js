@@ -44,10 +44,10 @@ const setLegalMovesAction = (moves) => {
   };
 };
 
-const setFenAction = (FEN) => {
+const setFenAction = (fen) => {
   return {
     type: "game/setFen",
-    payload: FEN,
+    payload: fen,
   };
 };
 
@@ -66,7 +66,7 @@ const setMoveNumberAction = (oldMoveNumber, newMoveNumber, history) => {
   };
 };
 
-const handleMoveAction = (from, to) => {
+const handleMoveAction = ({from, to}) => {
   return {
     type: "game/handleMove",
     payload: { from, to },

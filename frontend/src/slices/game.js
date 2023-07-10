@@ -7,33 +7,34 @@ import {
   movePiece,
   moveToAlgebraicChessNotation,
   fenToString,
+  newSquare,
+  getRank,
+  getFile,
 } from "../utils";
 import { pieceTypes } from "../pieces";
+import { isKingAttacked } from "../calculateMoves";
 
 const gameReducer = createSlice({
   name: "game",
   initialState: {
     turn: "w",
-    board: Array(64).fill(0),
+    position: Array(64).fill(0),
     selected: null,
     legalMoves: [],
     history: [],
     moveNumber: 0,
-    stringFEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-    FEN: {
-      board: Array(64).fill(0),
+    stringFen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    fen: {
+      position: {},
       turn: "w",
       castling: "KQkq",
-      enPassant: -1,
+      enPassant: "-",
       halfMoveClock: 0,
       fullMoveNumber: 0,
     },
     activePiece: null,
   },
   reducers: {
-    setBoard: (state, action) => {
-      state.FEN = action.payload;
-    },
     setTurn: (state, action) => {
       state.turn = action.payload;
     },
@@ -48,7 +49,7 @@ const gameReducer = createSlice({
     },
 
     setFen: (state, action) => {
-      state.FEN = action.payload;
+      state.fen = action.payload;
     },
 
     recordMove: (state, action) => {
@@ -59,126 +60,131 @@ const gameReducer = createSlice({
     setMoveNumber: (state, action) => {
       const newMoveNumber = action.payload;
       const diff = newMoveNumber - state.moveNumber;
+      let turn = state.fen.turn;
       for (let i = 0; i < Math.abs(diff); i += 1) {
+        turn = turn === "w" ? "b" : "w";
         const { move, capturedPiece } =
           state.history[state.moveNumber + (diff < 0 ? -i - 1 : i)];
-        if (diff < 0) {
-          state.FEN.board = movePiece(current(state.FEN.board), {
-            from: move.to,
-            to: move.from,
-          });
-          if (capturedPiece) {
-            state.FEN.board[move.to] = capturedPiece;
-          }
-        } else
-          state.FEN.board = movePiece(current(state.FEN.board), {
-            from: move.from,
-            to: move.to,
-          });
-      }
+        const { from, to } = diff < 0 ? { from: move.to, to: move.from } : move;
 
+        state.fen = {
+          ...state.fen,
+          turn,
+          position: movePiece(current(state.fen.position), {
+            from,
+            to,
+          }),
+        };
+        if (diff < 0 && capturedPiece)
+          state.fen.position[move.to] = capturedPiece;
+      }
+      state.stringFen = fenToString(state.fen);
       state.moveNumber = newMoveNumber;
     },
 
     handleMove: (state, action) => {
       const { from, to } = action.payload;
-      let { board, enPassant, turn, castling, halfMoveClock, fullMoveNumber } =
-        state.FEN;
 
-      const type = getPieceType(board[from]);
-      const color = getPieceColor(board[from]);
-      const capturedPiece = board[to];
+      let {
+        position,
+        enPassant,
+        turn,
+        castling,
+        halfMoveClock,
+        fullMoveNumber,
+      } = state.fen;
+      const type = getPieceType(position[from]);
+      const color = getPieceColor(position[from]);
+      const capturedPiece = position[to];
 
       halfMoveClock += 1;
+      enPassant = "-";
 
-      //board
-      board = movePiece(board, { from, to });
+      //position
+      position = movePiece(position, { from, to });
 
       // castling
       let toRemove = [];
-      if (type === pieceTypes.King) {
-        if (color === pieceTypes.White) toRemove += "KQ";
+      if (type === "K") {
+        if (color === "w") toRemove += "KQ";
         else toRemove += "kq";
-      } else if (type === pieceTypes.Rook) {
-        if (color === pieceTypes.White) {
-          if (from === 7) toRemove += "K";
-          else if (from === 0) toRemove += "Q";
+      } else if (type === "R") {
+        if (color === "w") {
+          if (from === "h1") toRemove += "K";
+          else if (from === "a1") toRemove += "Q";
         } else {
-          if (from === 63) toRemove += "k";
-          else if (from === 56) toRemove += "q";
+          if (from === "h8") toRemove += "k";
+          else if (from === "a8") toRemove += "q";
         }
-      } else if (type === pieceTypes.Pawn) {
+      } else if (type === "P") {
         halfMoveClock = 0;
-        if (color === pieceTypes.White) {
-          if (to - from === 16) enPassant = to - 8;
-          else if (to - from === -16) enPassant = to + 8;
-          if (enPassant === to) board[to - 8] = 0;
-        } else {
-          if (to - from === 16) enPassant = to - 8;
-          else if (to - from === -16) enPassant = to + 8;
-          if (enPassant === to) board[to + 8] = 0;
-        }
+        const colorCoefficient = color === "w" ? 1 : -1;
+        const toRank = getRank(to);
+        const fromRank = getRank(from);
+        const rankDifference = Math.abs(toRank - fromRank);
+        if (rankDifference === 2)
+          enPassant = newSquare(getFile(to), toRank, 0, - colorCoefficient);
+        if (state.enPassant === to) console.log("Captured En Passant");
       }
 
       castling = castling.replace(new RegExp(`[${toRemove}]`, "g"), "");
-      const notation = moveToAlgebraicChessNotation(state.FEN, from, to);
       fullMoveNumber = turn === "w" ? fullMoveNumber + 1 : fullMoveNumber;
-      state.moveNumber +=1;
-      state.history.push({ move: { from, to }, notation, capturedPiece });
+      state.moveNumber += 1;
       turn = turn === "w" ? "b" : "w";
-      const newFEN = {
-        board,
+      const newFen = {
+        position,
         turn,
         castling,
         enPassant,
         halfMoveClock,
         fullMoveNumber,
       };
-      
-      state.FEN = newFEN
-      state.stringFEN = fenToString(newFEN);
+      const notation = moveToAlgebraicChessNotation(state.fen.position, from, to, capturedPiece, isKingAttacked(newFen, turn));
+      state.history.push({ move: { from, to }, notation, capturedPiece });
 
+      state.fen = newFen;
+      state.stringFen = fenToString(newFen);
     },
     loadGame: (state, action) => {
       const moves = action.payload;
-      let fen = state.FEN;
-      let board = fen.board;
-      for(let index = 0; index < moves.length; index++){
+      let fen = state.fen;
+      let position = fen.position;
+      for (let index = 0; index < moves.length; index++) {
         const notation = moves[index];
         fen.turn = fen.turn === "w" ? "b" : "w";
-        const move = algebraicChessNotationToMove({...fen, board}, notation)
-        if(!move|| move.from === -1)  break;
+        const move = algebraicChessNotationToMove(
+          { ...fen, position },
+          notation
+        );
+        if (!move || move.from === -1) break;
 
-        const capturedPiece = board[move.to]
+        const capturedPiece = position[move.to];
 
-        board = movePiece(board, move)
-        
-        state.history.push({ move, notation, capturedPiece })
+        position = movePiece(position, move);
 
+        state.history.push({ move, notation, capturedPiece });
       }
     },
   },
 });
 
-export const selectBoard = (state) => state.game.board;
 export const selectTurn = (state) => state.game.turn;
 export const selectSelected = (state) => state.game.selected;
 export const selectLegalMoves = (state) => state.game.legalMoves;
 export const selectHistory = (state) => state.game.history;
 export const selectMoveNumber = (state) => state.game.moveNumber;
-export const selectStringFEN = (state) => state.game.stringFEN;
-export const selectFen = (state) => state.game.FEN;
+export const selectStringFen = (state) => state.game.stringFen;
+export const selectFen = (state) => state.game.fen;
 export const selectActivePiece = (state) => state.game.activePiece;
 
 export const {
-  setBoard,
   setTurn,
   setSelected,
   setLegalMoves,
   recordMove,
   setMoveNumber,
   handleMove,
-  loadGame
+  loadGame,
 } = gameReducer.actions;
 
 export default gameReducer.reducer;

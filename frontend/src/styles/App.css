@@ -1,17 +1,3 @@
-.piece{
-  cursor:pointer;
-  position:absolute;
-
-  width: 100%;
-  /* cursor: grab; */
-  z-index:100;
-  user-select:none;
-}
-
-.piece.active{
-  /* background:gray; */
-  z-index:201;
-}
 
 
 .dragover{
@@ -19,11 +5,7 @@
 }
 
 
-.image{
-  width:100px;
-  height:100px;
+.legal{
+  background: #2d24d380 !important;
 }
 
-.legal{
-  background: #14115880 !important;
-}
